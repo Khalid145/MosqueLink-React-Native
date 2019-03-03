@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { Icon } from 'native-base';
 
 export default class PrayerTimesTab extends Component {
@@ -11,9 +11,18 @@ export default class PrayerTimesTab extends Component {
     }
   render() {
     return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>Prayer Times Tab</Text>
-      </View>
+  <View
+    style={{
+      width: '95%',
+      paddingLeft: '5%',
+      marginTop: 80,
+      height: 800,
+    }}>
+    <View style={{ backgroundColor: 'white' }}>
+      <Text>Some Text</Text>
+    </View>
+    
+  </View>
     );
   }
 }
