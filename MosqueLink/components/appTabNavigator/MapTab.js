@@ -1,7 +1,11 @@
 import React, {Component} from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import {Text, View, Dimensions, StyleSheet, Animated, Button} from 'react-native'
+
 import { Icon } from 'native-base';
 import MapboxGL from '@mapbox/react-native-mapbox-gl';
+import SlidingUpPanel from 'rn-sliding-up-panel'
+
+const {height} = Dimensions.get('window')
 
 
 MapboxGL.setAccessToken('pk.eyJ1Ijoia2hhbGlkbWRldmVsb3BlciIsImEiOiJjanJqZndvcmwwYmFuNDRtbDhreGRvNmk5In0.ZQklzab4RPoGnq0RD_dTVQ');
@@ -11,8 +15,7 @@ export default class MapTab extends Component {
   static navigationOptions = {
     tabBarIcon: ({ tintColor }) => (
         <Icon name="ios-map" style={{ color: tintColor }} />
-    )
-}  
+    )}  
 
     constructor(props){
         super(props);
@@ -22,6 +25,8 @@ export default class MapTab extends Component {
             latitude: null,
             longitude: null,
             error: null,
+            count: 0,
+            mosqueid: null,
         };
 
     this.state = {
@@ -29,6 +34,15 @@ export default class MapTab extends Component {
     };
     this.onToggleUserLocation = this.onToggleUserLocation.bind(this);
     }
+
+    static defaultProps = {
+      draggableRange: {
+        top: height / 2.50,
+        bottom: 50
+      }
+    }
+  
+    _draggedValue = new Animated.Value(0);
 
     componentDidMount() {
       navigator.geolocation.getCurrentPosition(
@@ -48,16 +62,20 @@ export default class MapTab extends Component {
         this.setState({ showUserLocation: !this.state.showUserLocation });
       }
 
-    render() {
+      _renderContent = () => {
+        return (
+          <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <Text style={{color: '#FFF'}}>Mosque ID: {this.state.mosqueid}</Text>
+          </View>
+          <View style={styles.panelBody}>
+            <Text>Mosque ID: {this.state.mosqueid}</Text>
+          </View>
+        </View>
+        );
+    };
 
-        if(this.state.isLoading) {
-            return(
-                <View style={styles.loadingIndicator}>
-                <ActivityIndicator/>
-                <Text>Loading...</Text>
-                </View>
-            )
-        } else {
+    render() {
             return (
             <View style={styles.container}>
            <MapboxGL.MapView
@@ -68,11 +86,10 @@ export default class MapTab extends Component {
             // centerCoordinate={[114.139249, 22.3827448]}
             zoomLevel={15.00}
             centerCoordinate={[Number(this.state.longitude), Number(this.state.latitude)]}
-            showUserLocation={this.state.showUserLocation}
-            >
+            showUserLocation={this.state.showUserLocation}>
             <MapboxGL.ShapeSource
             id="earthquakes"
-            cluster
+            cluster={false}
             clusterRadius={50}
             clusterMaxZoom={5}
             url="https://halftone-exceptions.000webhostapp.com/retrieveMosqueLocations.php"
@@ -96,14 +113,31 @@ export default class MapTab extends Component {
                 })
               } else if (payload.properties.id != undefined){
                 const mosqueID = payload.properties.id;
+                this.setState({ mosqueid: mosqueID});
                 var pointCoor = [payload.geometry.coordinates[0], payload.geometry.coordinates[1]];
                 console.log(pointCoor);
+                // this._map.setCamera({
+                //   centerCoordinate: pointCoor,
+                //   zoom: 13,
+                //   duration: 2000,
+                //   mode: MapboxGL.CameraModes.Flight,
+                // });
+                this._panel.show();
+
                 this._map.setCamera({
-                  centerCoordinate: pointCoor,
-                  zoom: 13,
-                  duration: 2000,
+                  duration: 1000,
                   mode: MapboxGL.CameraModes.Flight,
-                });
+                  bounds: {
+                    paddingTop: 100,
+                    paddingRight: 50,
+                    paddingBottom: 300,
+                    paddingLeft: 50,
+                    ne: pointCoor,
+                    sw: [Number(this.state.longitude), Number(this.state.latitude)],
+                  },
+                })
+
+
               }
             }}>
             <MapboxGL.SymbolLayer
@@ -123,23 +157,45 @@ export default class MapTab extends Component {
               style={layerStyles.singlePoint}
             />
           </MapboxGL.ShapeSource>
-          
         </MapboxGL.MapView>
+        <SlidingUpPanel
+            showBackdrop={false}
+            ref={c => (this._panel = c)}
+            draggableRange={this.props.draggableRange}
+            animatedValue={this._draggedValue}>
+            <View>
+            {this._renderContent()}
+            </View>
+          </SlidingUpPanel>
           </View>
         );
-        }
+        
       }
     }
     
     const styles = StyleSheet.create({
       container: {
-        flex: 1,
+        flex: 1
       },
-      loadingIndicator: {
+      panel: {
         flex: 1,
-        justifyContent: 'center',
+        paddingRight: 20,
+        paddingLeft: 20,
+        backgroundColor: 'white',
+        position: 'relative',
+        backgroundColor: '#b197fc',
+      },
+      panelHeader: {
+        height: 100,
+        backgroundColor: '#b197fc',
         alignItems: 'center',
-        backgroundColor: '#F5FCFF',
+        justifyContent: 'center'
+      },
+      panelBody: {
+        height: 90,
+        backgroundColor: '#D3D3D3',
+        alignItems: 'center',
+        justifyContent: 'center'
       }
     });
 
